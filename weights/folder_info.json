@@ -1,0 +1,8 @@
+{
+    "emu":{
+        "enable": true,
+        "title": "Otori Emu",
+        "folder_path": "emu",
+        "description": "Emu RVC model"
+    }
+}
