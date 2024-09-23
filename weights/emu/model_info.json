@@ -1,5 +1,5 @@
 {
-	"emu-voice-lite": {
+	"emu": {
 		"enable": true,
 		"model_path": "emu_v1.pth",
         "title": "Lite v1",

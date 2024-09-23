@@ -549,7 +549,7 @@ if __name__ == '__main__':
     with gr.Blocks(theme=gr.themes.Default(primary_hue=gr.themes.colors.red, secondary_hue=gr.themes.colors.pink)) as app:
         gr.Markdown(
             "<div align='center'>\n\n"+
-            "# rvc-emu-voice-transform\n\n"+
+            "# rvc-voice-transform\n\n"+
             "### A voice changer that can transform into the voice of any musician. \n\n"+
             "</div>\n\n"+
             "</div>"
