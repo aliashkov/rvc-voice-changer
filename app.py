@@ -410,7 +410,7 @@ if __name__ == '__main__':
                                                 # Input
                                                 vc_input = gr.Textbox(label="Input audio path", visible=False)
                                                 # Upload
-                                                # vc_microphone_mode = gr.Checkbox(label="Use Microphone", value=False, visible=True, interactive=True)
+                                                vc_microphone_mode = gr.Checkbox(label="Use Microphone", value=False, visible=True, interactive=True)
                                                 vc_upload = gr.Audio(label="Upload audio file", visible=True, interactive=True)
                                                 # Youtube
                                                 vc_download_audio = gr.Dropdown(label="Provider", choices=["Youtube"], allow_custom_value=False, visible=False, value="Youtube", info="Select provider (Default: Youtube)")
@@ -513,7 +513,7 @@ if __name__ == '__main__':
                                         # Input
                                         vc_input = gr.Textbox(label="Input audio path", visible=False)
                                         # Upload
-                                        # vc_microphone_mode = gr.Checkbox(label="Use Microphone", value=False, visible=True, interactive=True)
+                                        vc_microphone_mode = gr.Checkbox(label="Use Microphone", value=False, visible=True, interactive=True)
                                         vc_upload = gr.Audio(label="Upload audio file", visible=True, interactive=True)
                                         # Youtube
                                         vc_download_audio = gr.Dropdown(label="Provider", choices=["Youtube"], allow_custom_value=False, visible=False, value="Youtube", info="Select provider (Default: Youtube)")
@@ -641,11 +641,11 @@ if __name__ == '__main__':
                             inputs=[vc_output, vc_vocal_volume, vc_inst_volume, vc_split_model],
                             outputs=[vc_combined_output],
                         )
-                        # vc_microphone_mode.change(
-                        #     fn=use_microphone,
-                        #     inputs=vc_microphone_mode,
-                        #     outputs=vc_upload,
-                        # )
+                        vc_microphone_mode.change(
+                             fn=use_microphone,
+                             inputs=vc_microphone_mode,
+                             outputs=vc_upload,
+                        )
                         vc_audio_mode.change(
                             fn=change_audio_mode,
                             inputs=[vc_audio_mode],
@@ -667,7 +667,8 @@ if __name__ == '__main__':
                                 vc_combined_output,
                                 vc_combine,
                                 tts_text,
-                                tts_voice
+                                tts_voice,
+                                vc_audio_mode
                             ],
                         )
 
