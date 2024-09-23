@@ -5,6 +5,7 @@ import traceback
 import logging
 import gradio as gr
 import numpy as np
+from flask import Flask, jsonify
 import librosa
 import torch
 import asyncio
@@ -26,6 +27,11 @@ from lib.infer_pack.models import (
 )
 from vc_infer_pipeline import VC
 from config import Config
+
+# Flask server
+app = Flask(__name__)
+
+
 config = Config()
 logging.getLogger("numba").setLevel(logging.WARNING)
 spaces = os.getenv("SYSTEM") == "spaces"
@@ -369,12 +375,41 @@ def use_microphone(microphone):
         return gr.Audio.update(source="microphone")
     else:
         return gr.Audio.update(source="upload")
+    
+@app.route("/rvc-models", methods=["GET"])
+def get_rvc_models():
+    categories = load_model()
+    models_info = []
+    for category in categories:
+        category_title = category[0]
+        category_folder = category[1]
+        description = category[2]
+        models = [
+            {
+                "character_name": model[0],
+                "model_title": model[1],
+                "model_author": model[2],
+                "model_version": model[4],
+            }
+            for model in category[3]
+        ]
+        models_info.append({
+            "category_title": category_title,
+            "category_folder": category_folder,
+            "description": description,
+            "models": models
+        })
+    return jsonify(models_info)    
 
 if __name__ == '__main__':
     load_hubert()
     categories = load_model()
     tts_voice_list = asyncio.new_event_loop().run_until_complete(edge_tts.list_voices())
     voices = [f"{v['ShortName']}-{v['Gender']}" for v in tts_voice_list]
+    from threading import Thread
+
+    flask_thread = Thread(target=lambda: app.run(host="127.0.0.1", port=9000, debug=False))
+    flask_thread.start()
     with gr.Blocks(theme=gr.themes.Default(primary_hue=gr.themes.colors.red, secondary_hue=gr.themes.colors.pink)) as app:
         gr.Markdown(
             "<div align='center'>\n\n"+
