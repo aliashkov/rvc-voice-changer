@@ -16,6 +16,7 @@ import subprocess
 import sys
 import io
 import wave
+import soundfile as sf
 # import spaces
 from datetime import datetime
 from fairseq import checkpoint_utils
@@ -101,10 +102,21 @@ def create_vc_fn(model_name, tgt_sr, net_g, vc, if_f0, version, file_index):
                 if vc_upload is None:
                     return "You need to upload an audio", None
                 sampling_rate, audio = vc_upload
+                print("Audio", audio)
+                print("Sampling_rate", sampling_rate)
                 duration = audio.shape[0] / sampling_rate
                 if duration > 20 and spaces:
                     return "Please upload an audio file that is less than 20 seconds. If you need to generate a longer audio file, please use Colab.", None
-                audio = (audio / np.iinfo(audio.dtype).max).astype(np.float32)
+                if audio.dtype != np.float32:
+                    if np.issubdtype(audio.dtype, np.integer):
+                        audio = (audio / np.iinfo(audio.dtype).max).astype(np.float32)
+                    else:
+                        audio = audio.astype(np.float32)
+    
+                # Ensure the audio is in the range [-1, 1]
+                if audio.max() > 1.0 or audio.min() < -1.0:
+                    audio = audio / max(abs(audio.max()), abs(audio.min()))
+    
                 if len(audio.shape) > 1:
                     audio = librosa.to_mono(audio.transpose(1, 0))
                 if sampling_rate != 16000:
