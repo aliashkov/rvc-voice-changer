@@ -605,7 +605,7 @@ if __name__ == '__main__':
                                                     label="Pitch extraction algorithm",
                                                     info=f0method_info,
                                                     choices=f0method_mode,
-                                                    value="pm",
+                                                    value="rmvpe",
                                                     interactive=True
                                                 )
                                                 index_rate1 = gr.Slider(
