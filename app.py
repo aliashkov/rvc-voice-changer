@@ -378,9 +378,8 @@ if __name__ == '__main__':
     with gr.Blocks(theme=gr.themes.Default(primary_hue=gr.themes.colors.red, secondary_hue=gr.themes.colors.pink)) as app:
         gr.Markdown(
             "<div align='center'>\n\n"+
-            "# chitsanfei/rvc-emu-voice-transform\n\n"+
-            "### A voice changer that can transform into the voice of Emu Otori from PJSK, modified from mrmocciai/rvc-genshin-v2. \n\n"+
-            "#### The model training is sourced from PJSK, SEGA, and the voice actor of Emu Otori herself. For research purposes only! \n\n"+
+            "# rvc-emu-voice-transform\n\n"+
+            "### A voice changer that can transform into the voice of any musician. \n\n"+
             "</div>\n\n"+
             "</div>"
         )
