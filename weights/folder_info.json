@@ -1,8 +1,14 @@
 {
-    "emu":{
-        "enable": true,
-        "title": "Otori Emu",
-        "folder_path": "emu",
-        "description": "Emu RVC model"
+    "emu-voice-lite": {
+      "enable": true,
+      "folder_path": "emu",
+      "title": "Emu Voice Lite",
+      "description": "Lite version of Emu voice model"
+    },
+    "markiplier": {
+      "enable": true,
+      "folder_path": "markiplier",
+      "title": "Markiplier Voice",
+      "description": "Markiplier voice model"
     }
-}
+  }

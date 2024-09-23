@@ -143,12 +143,14 @@ def load_model():
             category_folder = category_info['folder_path']
             description = category_info['description']
             models = []
-            print(category_folder)
-            with open(f"weights/{category_folder}/model_info.json", "r", encoding="utf-8") as f:
-                models_info = json.load(f)
-            for character_name, info in models_info.items():
-                if not info['enable']:
-                    continue
+            
+            model_info_path = f"weights/{category_folder}/model_info.json"
+            if os.path.isfile(model_info_path):
+                with open(model_info_path, "r", encoding="utf-8") as f:
+                    models_info = json.load(f)
+                for character_name, info in models_info.items():
+                    if not info['enable']:
+                        continue
                 model_title = info['title']
                 model_name = info['model_path']
                 model_author = info.get("author", None)
