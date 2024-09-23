@@ -5,6 +5,7 @@ import traceback
 import logging
 import gradio as gr
 import numpy as np
+from flask import Flask, jsonify
 import librosa
 import torch
 import asyncio
@@ -26,6 +27,11 @@ from lib.infer_pack.models import (
 )
 from vc_infer_pipeline import VC
 from config import Config
+
+# Flask server
+app = Flask(__name__)
+
+
 config = Config()
 logging.getLogger("numba").setLevel(logging.WARNING)
 spaces = os.getenv("SYSTEM") == "spaces"
@@ -143,12 +149,14 @@ def load_model():
             category_folder = category_info['folder_path']
             description = category_info['description']
             models = []
-            print(category_folder)
-            with open(f"weights/{category_folder}/model_info.json", "r", encoding="utf-8") as f:
-                models_info = json.load(f)
-            for character_name, info in models_info.items():
-                if not info['enable']:
-                    continue
+            
+            model_info_path = f"weights/{category_folder}/model_info.json"
+            if os.path.isfile(model_info_path):
+                with open(model_info_path, "r", encoding="utf-8") as f:
+                    models_info = json.load(f)
+                for character_name, info in models_info.items():
+                    if not info['enable']:
+                        continue
                 model_title = info['title']
                 model_name = info['model_path']
                 model_author = info.get("author", None)
@@ -367,18 +375,46 @@ def use_microphone(microphone):
         return gr.Audio.update(source="microphone")
     else:
         return gr.Audio.update(source="upload")
+    
+@app.route("/rvc-models", methods=["GET"])
+def get_rvc_models():
+    categories = load_model()
+    models_info = []
+    for category in categories:
+        category_title = category[0]
+        category_folder = category[1]
+        description = category[2]
+        models = [
+            {
+                "character_name": model[0],
+                "model_title": model[1],
+                "model_author": model[2],
+                "model_version": model[4],
+            }
+            for model in category[3]
+        ]
+        models_info.append({
+            "category_title": category_title,
+            "category_folder": category_folder,
+            "description": description,
+            "models": models
+        })
+    return jsonify(models_info)    
 
 if __name__ == '__main__':
     load_hubert()
     categories = load_model()
     tts_voice_list = asyncio.new_event_loop().run_until_complete(edge_tts.list_voices())
     voices = [f"{v['ShortName']}-{v['Gender']}" for v in tts_voice_list]
+    from threading import Thread
+
+    flask_thread = Thread(target=lambda: app.run(host="127.0.0.1", port=9000, debug=False))
+    flask_thread.start()
     with gr.Blocks(theme=gr.themes.Default(primary_hue=gr.themes.colors.red, secondary_hue=gr.themes.colors.pink)) as app:
         gr.Markdown(
             "<div align='center'>\n\n"+
-            "# chitsanfei/rvc-emu-voice-transform\n\n"+
-            "### A voice changer that can transform into the voice of Emu Otori from PJSK, modified from mrmocciai/rvc-genshin-v2. \n\n"+
-            "#### The model training is sourced from PJSK, SEGA, and the voice actor of Emu Otori herself. For research purposes only! \n\n"+
+            "# rvc-emu-voice-transform\n\n"+
+            "### A voice changer that can transform into the voice of any musician. \n\n"+
             "</div>\n\n"+
             "</div>"
         )
@@ -408,7 +444,7 @@ if __name__ == '__main__':
                                                 # Input
                                                 vc_input = gr.Textbox(label="Input audio path", visible=False)
                                                 # Upload
-                                                # vc_microphone_mode = gr.Checkbox(label="Use Microphone", value=False, visible=True, interactive=True)
+                                                vc_microphone_mode = gr.Checkbox(label="Use Microphone", value=False, visible=True, interactive=True)
                                                 vc_upload = gr.Audio(label="Upload audio file", visible=True, interactive=True)
                                                 # Youtube
                                                 vc_download_audio = gr.Dropdown(label="Provider", choices=["Youtube"], allow_custom_value=False, visible=False, value="Youtube", info="Select provider (Default: Youtube)")
@@ -511,7 +547,7 @@ if __name__ == '__main__':
                                         # Input
                                         vc_input = gr.Textbox(label="Input audio path", visible=False)
                                         # Upload
-                                        # vc_microphone_mode = gr.Checkbox(label="Use Microphone", value=False, visible=True, interactive=True)
+                                        vc_microphone_mode = gr.Checkbox(label="Use Microphone", value=False, visible=True, interactive=True)
                                         vc_upload = gr.Audio(label="Upload audio file", visible=True, interactive=True)
                                         # Youtube
                                         vc_download_audio = gr.Dropdown(label="Provider", choices=["Youtube"], allow_custom_value=False, visible=False, value="Youtube", info="Select provider (Default: Youtube)")
@@ -639,11 +675,11 @@ if __name__ == '__main__':
                             inputs=[vc_output, vc_vocal_volume, vc_inst_volume, vc_split_model],
                             outputs=[vc_combined_output],
                         )
-                        # vc_microphone_mode.change(
-                        #     fn=use_microphone,
-                        #     inputs=vc_microphone_mode,
-                        #     outputs=vc_upload,
-                        # )
+                        vc_microphone_mode.change(
+                             fn=use_microphone,
+                             inputs=vc_microphone_mode,
+                             outputs=vc_upload,
+                        )
                         vc_audio_mode.change(
                             fn=change_audio_mode,
                             inputs=[vc_audio_mode],
@@ -665,7 +701,8 @@ if __name__ == '__main__':
                                 vc_combined_output,
                                 vc_combine,
                                 tts_text,
-                                tts_voice
+                                tts_voice,
+                                vc_audio_mode
                             ],
                         )
 
