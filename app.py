@@ -841,5 +841,6 @@ if __name__ == '__main__':
                                 vc_audio_mode
                             ],
                         )
-
-        gradio_app.launch(server_name="0.0.0.0", server_port=7860)
+        gradio_app.queue(max_size=20, api_open=config.api).launch(server_name="0.0.0.0", server_port=7860)
+       
+       
