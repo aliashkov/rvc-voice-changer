@@ -3,6 +3,10 @@ FROM python:3.10.14
 # Downgrade pip to a version that doesn't cause conflicts
 RUN pip install pip==24.0
 
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /rvc-docker
 
 # Copy only requirements.txt first, to cache dependencies
