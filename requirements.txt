@@ -19,3 +19,5 @@ onnxruntime
 demucs
 edge-tts
 yt_dlp
+omegaconf==2.0.5
+flask

@@ -544,9 +544,9 @@ if __name__ == '__main__':
     voices = [f"{v['ShortName']}-{v['Gender']}" for v in tts_voice_list]
     from threading import Thread
 
-    flask_thread = Thread(target=lambda: app.run(host="127.0.0.1", port=9000, debug=False))
+    flask_thread = Thread(target=lambda: app.run(host="0.0.0.0", port=5000, debug=False))
     flask_thread.start()
-    with gr.Blocks(theme=gr.themes.Default(primary_hue=gr.themes.colors.red, secondary_hue=gr.themes.colors.pink)) as app:
+    with gr.Blocks(theme=gr.themes.Default(primary_hue=gr.themes.colors.red, secondary_hue=gr.themes.colors.pink)) as gradio_app:
         gr.Markdown(
             "<div align='center'>\n\n"+
             "# rvc-voice-transform\n\n"+
@@ -842,4 +842,4 @@ if __name__ == '__main__':
                             ],
                         )
 
-        app.queue(max_size=20, api_open=config.api).launch(share=config.colab)
+        gradio_app.launch(server_name="0.0.0.0", server_port=7860)

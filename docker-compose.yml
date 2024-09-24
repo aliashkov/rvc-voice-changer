@@ -1,0 +1,13 @@
+version: '3'
+services:
+  rvc-voice-changer:
+    build: .
+    ports:
+      - "7860:7860"  # Gradio is bound to port 7860
+      - "5000:5000"  # Flask is bound to port 5000
+    volumes:
+      - .:/rvc-docker
+      - weights:/models
+    environment:
+      - PYTHONUNBUFFERED=1 
+    restart: unless-stopped
