@@ -1,0 +1,11 @@
+{
+	"lukashenko": {
+		"enable": true,
+		"model_path": "lukashenko.pth",
+        "title": "Lite v1",
+        "cover": "cover.png",
+		"feature_retrieval_library": "lukashenko.index",
+		"author": "Chitsanfei"
+    
+    }
+}
