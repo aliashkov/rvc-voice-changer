@@ -105,7 +105,7 @@ def create_vc_fn(model_name, tgt_sr, net_g, vc, if_f0, version, file_index):
                 print("Audio", audio)
                 print("Sampling_rate", sampling_rate)
                 duration = audio.shape[0] / sampling_rate
-                if duration > 20 and spaces:
+                if duration > 20:
                     return "Please upload an audio file that is less than 20 seconds. If you need to generate a longer audio file, please use Colab.", None
                 if audio.dtype != np.float32:
                     if np.issubdtype(audio.dtype, np.integer):
@@ -842,5 +842,5 @@ if __name__ == '__main__':
                             ],
                         )
         #gradio_app.queue(max_size=20, api_open=config.api).launch(server_name="0.0.0.0", server_port=7860)
-        gradio_app.queue(max_size=20, api_open=config.api).launch(share=config.api)
+        gradio_app.queue(max_size=20, api_open=config.api).launch(server_name="0.0.0.0", server_port=7860)
        
