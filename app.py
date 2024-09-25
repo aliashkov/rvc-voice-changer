@@ -100,12 +100,19 @@ def create_vc_fn(model_name, tgt_sr, net_g, vc, if_f0, version, file_index):
                 audio, sr = librosa.load(vc_input, sr=16000, mono=True)
             elif vc_audio_mode == "Upload audio":
                 if vc_upload is None:
-                    return "You need to upload an audio", None
+                   print(f"You need to upload an audio")
+                   logs.append(f"You need to upload an audio")
+                   yield "\n".join(logs), None
+                   return "You need to upload an audio", None
                 sampling_rate, audio = vc_upload
                 print("Audio", audio)
                 print("Sampling_rate", sampling_rate)
                 duration = audio.shape[0] / sampling_rate
+                print("Duration", duration)
                 if duration > 20:
+                    print(f"Please upload an audio file that is less than 20 seconds. If you need to generate a longer audio file, please use Colab.")
+                    logs.append(f"Please upload an audio file that is less than 20 seconds. If you need to generate a longer audio file, please use Colab.")
+                    yield "\n".join(logs), None
                     return "Please upload an audio file that is less than 20 seconds. If you need to generate a longer audio file, please use Colab.", None
                 if audio.dtype != np.float32:
                     if np.issubdtype(audio.dtype, np.integer):
