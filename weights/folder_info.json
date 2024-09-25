@@ -1,5 +1,5 @@
 {
-    "emu-voice-lite": {
+    "emu": {
       "enable": true,
       "folder_path": "emu",
       "title": "Emu Voice Lite",
@@ -10,5 +10,11 @@
       "folder_path": "markiplier",
       "title": "Markiplier Voice",
       "description": "Markiplier voice model"
+    },
+    "lukashenko": {
+      "enable": true,
+      "folder_path": "lukashenko",
+      "title": "Lukashenko Voice",
+      "description": "Lukashenko voice model"
     }
   }

@@ -5,7 +5,7 @@ import traceback
 import logging
 import gradio as gr
 import numpy as np
-from flask import Flask, jsonify
+from flask import Flask, request, jsonify
 import librosa
 import torch
 import asyncio
@@ -16,6 +16,7 @@ import subprocess
 import sys
 import io
 import wave
+import soundfile as sf
 # import spaces
 from datetime import datetime
 from fairseq import checkpoint_utils
@@ -78,6 +79,19 @@ def create_vc_fn(model_name, tgt_sr, net_g, vc, if_f0, version, file_index):
         protect,
     ):
         try:
+            print("Model name: ", model_name)
+            print("VC audio mode: ", vc_audio_mode)
+            print("VC Input: ", vc_input)
+            print("VC Upload: ", vc_upload)
+            print("TTS text: ", tts_text)
+            print("TTS voice: ", tts_voice)
+            print("F0 UP KEY: ", f0_up_key)
+            print("FO METHOD: ", f0_method)
+            print("Index rate: ", index_rate)
+            print("Filter rate: ", filter_radius)
+            print("Resample SR: ", resample_sr)
+            print("RMS MIX RATE: ", rms_mix_rate)
+            print("Protect: ", protect)
             logs = []
             print(f"Converting using {model_name}...")
             logs.append(f"Converting using {model_name}...")
@@ -88,10 +102,21 @@ def create_vc_fn(model_name, tgt_sr, net_g, vc, if_f0, version, file_index):
                 if vc_upload is None:
                     return "You need to upload an audio", None
                 sampling_rate, audio = vc_upload
+                print("Audio", audio)
+                print("Sampling_rate", sampling_rate)
                 duration = audio.shape[0] / sampling_rate
                 if duration > 20 and spaces:
                     return "Please upload an audio file that is less than 20 seconds. If you need to generate a longer audio file, please use Colab.", None
-                audio = (audio / np.iinfo(audio.dtype).max).astype(np.float32)
+                if audio.dtype != np.float32:
+                    if np.issubdtype(audio.dtype, np.integer):
+                        audio = (audio / np.iinfo(audio.dtype).max).astype(np.float32)
+                    else:
+                        audio = audio.astype(np.float32)
+    
+                # Ensure the audio is in the range [-1, 1]
+                if audio.max() > 1.0 or audio.min() < -1.0:
+                    audio = audio / max(abs(audio.max()), abs(audio.min()))
+    
                 if len(audio.shape) > 1:
                     audio = librosa.to_mono(audio.transpose(1, 0))
                 if sampling_rate != 16000:
@@ -399,21 +424,132 @@ def get_rvc_models():
             "description": description,
             "models": models
         })
-    return jsonify(models_info)    
+    return jsonify(models_info)  
+
+@app.route("/convert-voice", methods=["POST"])
+def convert_voice():
+    try:
+        # Get form data
+        model_name = request.form.get('model_name')
+        vc_audio_mode = request.form.get('vc_audio_mode')
+        f0_up_key = int(request.form.get('f0_up_key', 0))
+        f0_method = request.form.get('f0_method', 'pm')
+        index_rate = float(request.form.get('index_rate', 0.7))
+        filter_radius = int(request.form.get('filter_radius', 3))
+        resample_sr = int(request.form.get('resample_sr', 0))
+        rms_mix_rate = float(request.form.get('rms_mix_rate', 1.0))
+        protect = float(request.form.get('protect', 0.5))
+
+        print("MODEL NAME", model_name)
+
+        # Load all categories and models
+        categories = load_model()
+
+        # Find the correct model
+        selected_model = None
+        for folder_title, folder, description, models in categories:
+            for name, title, author, cover, model_version, vc_fn in models:
+                if name == model_name:
+                    selected_model = vc_fn
+                    break
+            if selected_model:
+                break
+
+        if not selected_model:
+            return jsonify({"error": f"Model '{model_name}' not found"}), 400
+
+        # Prepare parameters for vc_fn
+        vc_input = ""
+        vc_upload = None
+        tts_text = ""
+        tts_voice = ""
+
+        # Handle audio input
+        if vc_audio_mode == "Upload audio":
+            if 'audio_file' not in request.files:
+                return jsonify({"error": "No audio file provided"}), 400
+            
+            audio_file = request.files['audio_file']
+            if audio_file.filename == '':
+                return jsonify({"error": "No selected file"}), 400
+            
+            if audio_file:
+                # Save the file temporarily
+                temp_path = "temp_audio.wav"
+                audio_file.save(temp_path)
+                
+                # Load the audio file
+                audio, sr = librosa.load(temp_path, sr=16000, mono=True)
+                vc_upload = (sr, audio)
+                
+                # Remove the temporary file
+                os.remove(temp_path)
+        elif vc_audio_mode == "TTS Audio":
+            tts_text = request.form.get('tts_text')
+            tts_voice = request.form.get('tts_voice')
+            if not tts_text or not tts_voice:
+                return jsonify({"error": "TTS text and voice are required for TTS Audio mode"}), 400
+        else:
+            return jsonify({"error": "Invalid audio mode"}), 400
+
+        # Call the vc_fn with all required parameters
+        vc_generator = selected_model(
+            vc_audio_mode,
+            vc_input,
+            vc_upload,
+            tts_text,
+            tts_voice,
+            f0_up_key,
+            f0_method,
+            index_rate,
+            filter_radius,
+            resample_sr,
+            rms_mix_rate,
+            protect
+        )
+
+        # Get the first yield
+        logs, _ = next(vc_generator)
+
+        # Get the final result
+        try:
+            while True:
+                logs, result = next(vc_generator)
+        except StopIteration:
+            pass
+
+        if result is None:
+            return jsonify({"error": logs}), 500
+
+        tgt_sr, audio_opt = result
+
+        # Save the converted audio
+        output_path = f"converted_{model_name}_{datetime.now().strftime('%Y%m%d%H%M%S')}.wav"
+        sf.write(output_path, audio_opt, tgt_sr)
+
+        return jsonify({
+            "message": f"Successfully converted using {model_name}",
+            "info": logs,
+            "output_path": output_path
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
 
 if __name__ == '__main__':
     load_hubert()
     categories = load_model()
+    print("CATEGORIES", categories)
     tts_voice_list = asyncio.new_event_loop().run_until_complete(edge_tts.list_voices())
     voices = [f"{v['ShortName']}-{v['Gender']}" for v in tts_voice_list]
     from threading import Thread
 
-    flask_thread = Thread(target=lambda: app.run(host="127.0.0.1", port=9000, debug=False))
+    flask_thread = Thread(target=lambda: app.run(host="0.0.0.0", port=5000, debug=False))
     flask_thread.start()
-    with gr.Blocks(theme=gr.themes.Default(primary_hue=gr.themes.colors.red, secondary_hue=gr.themes.colors.pink)) as app:
+    with gr.Blocks(theme=gr.themes.Default(primary_hue=gr.themes.colors.red, secondary_hue=gr.themes.colors.pink)) as gradio_app:
         gr.Markdown(
             "<div align='center'>\n\n"+
-            "# rvc-emu-voice-transform\n\n"+
+            "# rvc-voice-transform\n\n"+
             "### A voice changer that can transform into the voice of any musician. \n\n"+
             "</div>\n\n"+
             "</div>"
@@ -469,7 +605,7 @@ if __name__ == '__main__':
                                                     label="Pitch extraction algorithm",
                                                     info=f0method_info,
                                                     choices=f0method_mode,
-                                                    value="pm",
+                                                    value="rmvpe",
                                                     interactive=True
                                                 )
                                                 index_rate1 = gr.Slider(
@@ -705,5 +841,6 @@ if __name__ == '__main__':
                                 vc_audio_mode
                             ],
                         )
-
-        app.queue(max_size=20, api_open=config.api).launch(share=config.colab)
+        gradio_app.queue(max_size=20, api_open=config.api).launch(server_name="0.0.0.0", server_port=7860)
+       
+       

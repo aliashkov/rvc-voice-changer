@@ -1,0 +1,20 @@
+version: '3'
+services:
+  rvc-voice-changer:
+    image: shoot2033/rvc-voice-changer:latest
+    build: .
+    ports:
+      - "7860:7860"  # Gradio is bound to port 7860
+      - "5000:5000"  # Flask is bound to port 5000
+    volumes:
+      - .:/rvc-docker
+      - weights:/models
+    #tags:
+    #  - registry.gitlab.com/gena.bondarev/token_front/next-app:latest
+    environment:
+      - PYTHONUNBUFFERED=1 
+    restart: unless-stopped
+
+volumes:
+  weights:
+    driver: local
