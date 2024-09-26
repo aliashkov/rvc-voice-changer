@@ -32,6 +32,7 @@ import redis
 from rq import Queue, Worker, Connection
 from rq.job import Job
 import uuid
+from converter import load_model  # Import from the new module
 
 # Flask server
 app = Flask(__name__)
@@ -66,6 +67,22 @@ else:
 if os.path.isfile("rmvpe.pt"):
     f0method_mode.insert(2, "rmvpe")
 
+def load_hubert():
+    global hubert_model
+    models, _, _ = checkpoint_utils.load_model_ensemble_and_task(
+        ["hubert_base.pt"],
+        suffix="",
+    )
+    hubert_model = models[0]
+    hubert_model = hubert_model.to(config.device)
+    if config.is_half:
+        hubert_model = hubert_model.half()
+    else:
+        hubert_model = hubert_model.float()
+    hubert_model.eval()
+
+
+load_hubert()
 redis_host = os.getenv('REDIS_HOST', 'redis')
 redis_port = int(os.getenv('REDIS_PORT', 6379))
 
@@ -75,7 +92,7 @@ queue = Queue('voice_conversion', connection=redis_conn)
 
 def perform_conversion(model_name, vc_audio_mode, vc_input, vc_upload, tts_text, tts_voice, f0_up_key, f0_method, index_rate, filter_radius, resample_sr, rms_mix_rate, protect):
     # Load all categories and models
-    categories = load_model()
+    categories = load_model(config)
 
     # Find the correct model
     selected_model = None
@@ -238,7 +255,7 @@ def create_vc_fn(model_name, tgt_sr, net_g, vc, if_f0, version, file_index):
             yield info, None
     return vc_fn
 
-def load_model():
+""" def load_model():
     categories = []
     if os.path.isfile("weights/folder_info.json"):
         with open("weights/folder_info.json", "r", encoding="utf-8") as f:
@@ -293,7 +310,7 @@ def load_model():
             categories.append([category_title, category_folder, description, models])
     else:
         categories = []
-    return categories
+    return categories """
 
 def download_audio(url, audio_provider):
     logs = []
@@ -351,19 +368,6 @@ def combine_vocal_and_inst(audio_data, vocal_volume, inst_volume, split_model):
     print(result.stdout.decode())
     return output_path
 
-def load_hubert():
-    global hubert_model
-    models, _, _ = checkpoint_utils.load_model_ensemble_and_task(
-        ["hubert_base.pt"],
-        suffix="",
-    )
-    hubert_model = models[0]
-    hubert_model = hubert_model.to(config.device)
-    if config.is_half:
-        hubert_model = hubert_model.half()
-    else:
-        hubert_model = hubert_model.float()
-    hubert_model.eval()
 
 def change_audio_mode(vc_audio_mode):
     if vc_audio_mode == "Input path":
@@ -479,7 +483,7 @@ def use_microphone(microphone):
     
 @app.route("/rvc-models", methods=["GET"])
 def get_rvc_models():
-    categories = load_model()
+    categories = load_model(config)
     models_info = []
     for category in categories:
         category_title = category[0]
@@ -568,8 +572,8 @@ def job_status(job_id):
         return jsonify({"status": "pending"})
 
 if __name__ == '__main__':
-    load_hubert()
-    categories = load_model()
+    
+    categories = load_model(config)
     print("CATEGORIES", categories)
     tts_voice_list = asyncio.new_event_loop().run_until_complete(edge_tts.list_voices())
     voices = [f"{v['ShortName']}-{v['Gender']}" for v in tts_voice_list]
