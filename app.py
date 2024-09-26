@@ -5,7 +5,7 @@ import traceback
 import logging
 import gradio as gr
 import numpy as np
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file, abort
 import librosa
 import torch
 import asyncio
@@ -30,6 +30,7 @@ from vc_infer_pipeline import VC
 from config import Config
 import redis
 from rq import Queue, Worker, Connection
+from rq.exceptions import NoSuchJobError
 from rq.job import Job
 import uuid
 from converter import load_model  # Import from the new module
@@ -516,7 +517,6 @@ def get_rvc_models():
 @app.route("/convert-voice", methods=["POST"])
 def convert_voice():
     try:
-        # Get form data
         model_name = request.form.get('model_name')
         vc_audio_mode = request.form.get('vc_audio_mode')
         f0_up_key = int(request.form.get('f0_up_key', 0))
@@ -527,10 +527,7 @@ def convert_voice():
         rms_mix_rate = float(request.form.get('rms_mix_rate', 1.0))
         protect = float(request.form.get('protect', 0.5))
 
-        vc_input = ""
         vc_upload = None
-        tts_text = ""
-        tts_voice = ""
 
         # Handle audio input
         if vc_audio_mode == "Upload audio":
@@ -541,24 +538,15 @@ def convert_voice():
             if audio_file.filename == '':
                 return jsonify({"error": "No selected file"}), 400
             
-            if audio_file:
-                # Save the file temporarily
-                temp_path = f"temp_audio_{uuid.uuid4()}.wav"
-                audio_file.save(temp_path)
-                
-                # Load the audio file
-                audio, sr = librosa.load(temp_path, sr=16000, mono=True)
-                vc_upload = (sr, audio)
-        elif vc_audio_mode == "TTS Audio":
-            tts_text = request.form.get('tts_text')
-            tts_voice = request.form.get('tts_voice')
-            if not tts_text or not tts_voice:
-                return jsonify({"error": "TTS text and voice are required for TTS Audio mode"}), 400
+            temp_path = f"temp_audio_{uuid.uuid4()}.wav"
+            audio_file.save(temp_path)
+            audio, sr = librosa.load(temp_path, sr=16000, mono=True)
+            vc_upload = (sr, audio)
         else:
             return jsonify({"error": "Invalid audio mode"}), 400
 
         # Enqueue the conversion task
-        job = queue.enqueue(perform_conversion, model_name, vc_audio_mode, vc_input, vc_upload, tts_text, tts_voice, f0_up_key, f0_method, index_rate, filter_radius, resample_sr, rms_mix_rate, protect)
+        job = queue.enqueue(perform_conversion, model_name, vc_audio_mode, None, vc_upload, None, None, f0_up_key, f0_method, index_rate, filter_radius, resample_sr, rms_mix_rate, protect)
 
         return jsonify({
             "message": "Conversion task enqueued",
@@ -567,16 +555,41 @@ def convert_voice():
 
     except Exception as e:
         return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
-    
+
+# Endpoint to check job status
 @app.route("/job-status/<job_id>", methods=["GET"])
 def job_status(job_id):
-    job = Job.fetch(job_id, connection=redis_conn)
-    if job.is_finished:
-        return jsonify(job.result)
-    elif job.is_failed:
-        return jsonify({"error": "Job failed", "error_message": job.exc_info})
-    else:
-        return jsonify({"status": "pending"})
+    try:
+        job = Job.fetch(job_id, connection=redis_conn)
+        if job.is_finished:
+            return jsonify({"status": "finished", "result": job.result})
+        elif job.is_failed:
+            return jsonify({"status": "failed", "error_message": job.exc_info})
+        else:
+            return jsonify({"status": "pending", "progress": job.meta.get('progress', 0)})
+    except NoSuchJobError:
+        return jsonify({"error": "Job not found"}), 404
+
+# Endpoint to download the result file
+@app.route("/download/<job_id>", methods=["GET"])
+def download_result(job_id):
+    try:
+        job = Job.fetch(job_id, connection=redis_conn)
+        if job.is_finished:
+            output_path = job.result.get("output_path")
+            if os.path.exists(output_path):
+                return send_file(output_path, as_attachment=True, mimetype='audio/wav')
+            else:
+                return jsonify({"error": "Result file not found"}), 404
+        else:
+            return jsonify({"error": "Job is not finished yet"}), 400
+    except NoSuchJobError:
+        return jsonify({"error": "Job not found"}), 404
+    
+def start_worker():
+    with Connection(redis_conn):
+        worker = Worker(['voice_conversion'], connection=redis_conn)
+        worker.work()
 
 if __name__ == '__main__':
     
@@ -584,6 +597,7 @@ if __name__ == '__main__':
     print("CATEGORIES", categories)
     tts_voice_list = asyncio.new_event_loop().run_until_complete(edge_tts.list_voices())
     voices = [f"{v['ShortName']}-{v['Gender']}" for v in tts_voice_list]
+
     from threading import Thread
 
     flask_thread = Thread(target=lambda: app.run(host="0.0.0.0", port=5000, debug=False))
@@ -593,6 +607,14 @@ if __name__ == '__main__':
         worker = Worker(['voice_conversion'], connection=redis_conn)
         worker_thread = Thread(target=worker.work)
         worker_thread.start()
+
+
+    #app.run(host="0.0.0.0", port=5000, debug=False)
+
+    # Start the worker in a separate thread
+    #from threading import Thread
+    #worker_thread = Thread(target=start_worker)
+    #worker_thread.start()
     with gr.Blocks(theme=gr.themes.Default(primary_hue=gr.themes.colors.red, secondary_hue=gr.themes.colors.pink)) as gradio_app:
         gr.Markdown(
             "<div align='center'>\n\n"+

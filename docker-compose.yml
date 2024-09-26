@@ -22,6 +22,17 @@ services:
     ports:
       - "6379:6379"
 
+  rq-worker:
+    build: .
+    command: rq worker voice_conversion
+    volumes:
+      - .:/rvc-docker
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
+
 volumes:
   weights:
     driver: local
