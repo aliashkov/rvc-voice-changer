@@ -33,6 +33,7 @@ from rq import Queue, Worker, Connection
 from rq.job import Job
 import uuid
 from converter import load_model  # Import from the new module
+from coversion_tasks import perform_conversion
 
 # Flask server
 app = Flask(__name__)
@@ -149,7 +150,7 @@ def perform_conversion(model_name, vc_audio_mode, vc_input, vc_upload, tts_text,
     }
 
 # @spaces.GPU
-def create_vc_fn(model_name, tgt_sr, net_g, vc, if_f0, version, file_index):
+""" def create_vc_fn(model_name, tgt_sr, net_g, vc, if_f0, version, file_index):
     def vc_fn(
         vc_audio_mode,
         vc_input, 
@@ -253,7 +254,7 @@ def create_vc_fn(model_name, tgt_sr, net_g, vc, if_f0, version, file_index):
             info = traceback.format_exc()
             print(info)
             yield info, None
-    return vc_fn
+    return vc_fn """
 
 """ def load_model():
     categories = []
