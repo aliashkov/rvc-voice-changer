@@ -10,9 +10,11 @@ from converter import load_model  # Import from the new module
 config = Config()
 
 def perform_conversion(model_name, vc_audio_mode, vc_input, vc_upload, tts_text, tts_voice, f0_up_key, f0_method, index_rate, filter_radius, resample_sr, rms_mix_rate, protect):
+
+    print("777777777")
     # Load all categories and models
     categories = load_model(config)
-
+    print(categories)
     # Find the correct model
     selected_model = None
     for folder_title, folder, description, models in categories:
@@ -25,6 +27,8 @@ def perform_conversion(model_name, vc_audio_mode, vc_input, vc_upload, tts_text,
 
     if not selected_model:
         return {"error": f"Model '{model_name}' not found"}
+    
+    print("5677657667567576567")
 
     # Call the vc_fn with all required parameters
     vc_generator = selected_model(

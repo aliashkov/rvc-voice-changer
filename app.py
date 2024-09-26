@@ -91,7 +91,13 @@ redis_port = int(os.getenv('REDIS_PORT', 6379))
 redis_conn = redis.Redis(host=redis_host, port=redis_port)
 queue = Queue('voice_conversion', connection=redis_conn)
 
-def perform_conversion(model_name, vc_audio_mode, vc_input, vc_upload, tts_text, tts_voice, f0_up_key, f0_method, index_rate, filter_radius, resample_sr, rms_mix_rate, protect):
+queue_name = 'voice_conversion'  # Change this to your queue name
+
+queue.empty()
+
+print(f"All jobs from '{queue_name}' have been cleared.")
+
+""" def perform_conversion(model_name, vc_audio_mode, vc_input, vc_upload, tts_text, tts_voice, f0_up_key, f0_method, index_rate, filter_radius, resample_sr, rms_mix_rate, protect):
     # Load all categories and models
     categories = load_model(config)
 
@@ -147,10 +153,10 @@ def perform_conversion(model_name, vc_audio_mode, vc_input, vc_upload, tts_text,
         "message": f"Successfully converted using {model_name}",
         "info": logs,
         "output_path": output_path
-    }
+    } """
 
 # @spaces.GPU
-""" def create_vc_fn(model_name, tgt_sr, net_g, vc, if_f0, version, file_index):
+def create_vc_fn(model_name, tgt_sr, net_g, vc, if_f0, version, file_index):
     def vc_fn(
         vc_audio_mode,
         vc_input, 
@@ -254,7 +260,7 @@ def perform_conversion(model_name, vc_audio_mode, vc_input, vc_upload, tts_text,
             info = traceback.format_exc()
             print(info)
             yield info, None
-    return vc_fn """
+    return vc_fn
 
 """ def load_model():
     categories = []
