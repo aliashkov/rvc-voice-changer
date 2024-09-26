@@ -28,6 +28,10 @@ from lib.infer_pack.models import (
 )
 from vc_infer_pipeline import VC
 from config import Config
+import redis
+from rq import Queue, Worker, Connection
+from rq.job import Job
+import uuid
 
 # Flask server
 app = Flask(__name__)
@@ -61,6 +65,71 @@ else:
 
 if os.path.isfile("rmvpe.pt"):
     f0method_mode.insert(2, "rmvpe")
+
+redis_host = os.getenv('REDIS_HOST', 'redis')
+redis_port = int(os.getenv('REDIS_PORT', 6379))
+
+# Set up Redis connection
+redis_conn = redis.Redis(host=redis_host, port=redis_port)
+queue = Queue('voice_conversion', connection=redis_conn)
+
+def perform_conversion(model_name, vc_audio_mode, vc_input, vc_upload, tts_text, tts_voice, f0_up_key, f0_method, index_rate, filter_radius, resample_sr, rms_mix_rate, protect):
+    # Load all categories and models
+    categories = load_model()
+
+    # Find the correct model
+    selected_model = None
+    for folder_title, folder, description, models in categories:
+        for name, title, author, cover, model_version, vc_fn in models:
+            if name == model_name:
+                selected_model = vc_fn
+                break
+        if selected_model:
+            break
+
+    if not selected_model:
+        return {"error": f"Model '{model_name}' not found"}
+
+    # Call the vc_fn with all required parameters
+    vc_generator = selected_model(
+        vc_audio_mode,
+        vc_input,
+        vc_upload,
+        tts_text,
+        tts_voice,
+        f0_up_key,
+        f0_method,
+        index_rate,
+        filter_radius,
+        resample_sr,
+        rms_mix_rate,
+        protect
+    )
+
+    # Get the first yield
+    logs, _ = next(vc_generator)
+
+    # Get the final result
+    try:
+        while True:
+            logs, result = next(vc_generator)
+    except StopIteration:
+        pass
+
+    if result is None:
+        return {"error": logs}
+
+    tgt_sr, audio_opt = result
+
+    # Save the converted audio
+    output_path = f"converted_{model_name}_{datetime.now().strftime('%Y%m%d%H%M%S')}.wav"
+    sf.write(output_path, audio_opt, tgt_sr)
+
+    return {
+        "message": f"Successfully converted using {model_name}",
+        "info": logs,
+        "output_path": output_path
+    }
 
 # @spaces.GPU
 def create_vc_fn(model_name, tgt_sr, net_g, vc, if_f0, version, file_index):
@@ -447,25 +516,6 @@ def convert_voice():
         rms_mix_rate = float(request.form.get('rms_mix_rate', 1.0))
         protect = float(request.form.get('protect', 0.5))
 
-        print("MODEL NAME", model_name)
-
-        # Load all categories and models
-        categories = load_model()
-
-        # Find the correct model
-        selected_model = None
-        for folder_title, folder, description, models in categories:
-            for name, title, author, cover, model_version, vc_fn in models:
-                if name == model_name:
-                    selected_model = vc_fn
-                    break
-            if selected_model:
-                break
-
-        if not selected_model:
-            return jsonify({"error": f"Model '{model_name}' not found"}), 400
-
-        # Prepare parameters for vc_fn
         vc_input = ""
         vc_upload = None
         tts_text = ""
@@ -482,15 +532,12 @@ def convert_voice():
             
             if audio_file:
                 # Save the file temporarily
-                temp_path = "temp_audio.wav"
+                temp_path = f"temp_audio_{uuid.uuid4()}.wav"
                 audio_file.save(temp_path)
                 
                 # Load the audio file
                 audio, sr = librosa.load(temp_path, sr=16000, mono=True)
                 vc_upload = (sr, audio)
-                
-                # Remove the temporary file
-                os.remove(temp_path)
         elif vc_audio_mode == "TTS Audio":
             tts_text = request.form.get('tts_text')
             tts_voice = request.form.get('tts_voice')
@@ -499,49 +546,26 @@ def convert_voice():
         else:
             return jsonify({"error": "Invalid audio mode"}), 400
 
-        # Call the vc_fn with all required parameters
-        vc_generator = selected_model(
-            vc_audio_mode,
-            vc_input,
-            vc_upload,
-            tts_text,
-            tts_voice,
-            f0_up_key,
-            f0_method,
-            index_rate,
-            filter_radius,
-            resample_sr,
-            rms_mix_rate,
-            protect
-        )
-
-        # Get the first yield
-        logs, _ = next(vc_generator)
-
-        # Get the final result
-        try:
-            while True:
-                logs, result = next(vc_generator)
-        except StopIteration:
-            pass
-
-        if result is None:
-            return jsonify({"error": logs}), 500
-
-        tgt_sr, audio_opt = result
-
-        # Save the converted audio
-        output_path = f"converted_{model_name}_{datetime.now().strftime('%Y%m%d%H%M%S')}.wav"
-        sf.write(output_path, audio_opt, tgt_sr)
+        # Enqueue the conversion task
+        job = queue.enqueue(perform_conversion, model_name, vc_audio_mode, vc_input, vc_upload, tts_text, tts_voice, f0_up_key, f0_method, index_rate, filter_radius, resample_sr, rms_mix_rate, protect)
 
         return jsonify({
-            "message": f"Successfully converted using {model_name}",
-            "info": logs,
-            "output_path": output_path
+            "message": "Conversion task enqueued",
+            "job_id": job.id
         })
 
     except Exception as e:
         return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
+    
+@app.route("/job-status/<job_id>", methods=["GET"])
+def job_status(job_id):
+    job = Job.fetch(job_id, connection=redis_conn)
+    if job.is_finished:
+        return jsonify(job.result)
+    elif job.is_failed:
+        return jsonify({"error": "Job failed", "error_message": job.exc_info})
+    else:
+        return jsonify({"status": "pending"})
 
 if __name__ == '__main__':
     load_hubert()
@@ -553,6 +577,11 @@ if __name__ == '__main__':
 
     flask_thread = Thread(target=lambda: app.run(host="0.0.0.0", port=5000, debug=False))
     flask_thread.start()
+
+    with Connection(redis_conn):
+        worker = Worker(['voice_conversion'], connection=redis_conn)
+        worker_thread = Thread(target=worker.work)
+        worker_thread.start()
     with gr.Blocks(theme=gr.themes.Default(primary_hue=gr.themes.colors.red, secondary_hue=gr.themes.colors.pink)) as gradio_app:
         gr.Markdown(
             "<div align='center'>\n\n"+

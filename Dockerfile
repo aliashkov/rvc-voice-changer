@@ -33,7 +33,8 @@ RUN pip install yt_dlp
 RUN pip install omegaconf>=2.0.5
 RUN pip install flask
 RUN pip install ffmpeg
-RUN pip install redis
+RUN pip install redis rq
+RUN pip install uuid
 
 # Now copy the project files
 COPY . /rvc-docker
