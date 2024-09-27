@@ -186,6 +186,11 @@ def create_vc_fn(model_name, tgt_sr, net_g, vc, if_f0, version, file_index):
             print("Resample SR: ", resample_sr)
             print("RMS MIX RATE: ", rms_mix_rate)
             print("Protect: ", protect)
+            print("tgt_sr ", tgt_sr)
+            print("net_g ", net_g)
+            print("vc", vc)
+            print("if_f0", version)
+            print("file_index", file_index)
             logs = []
             print(f"Converting using {model_name}...")
             logs.append(f"Converting using {model_name}...")
