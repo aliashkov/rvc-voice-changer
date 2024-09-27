@@ -35,9 +35,12 @@ import uuid
 
 
 def load_model(config):
+    print("6666666")
     from app import create_vc_fn
     categories = []
+    print("777777")
     if os.path.isfile("weights/folder_info.json"):
+        print("4565646464456654465")
         with open("weights/folder_info.json", "r", encoding="utf-8") as f:
             folder_info = json.load(f)
         for category_name, category_info in folder_info.items():
@@ -47,6 +50,7 @@ def load_model(config):
             category_folder = category_info['folder_path']
             description = category_info['description']
             models = []
+            print(models)
             
             model_info_path = f"weights/{category_folder}/model_info.json"
             if os.path.isfile(model_info_path):

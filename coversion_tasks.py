@@ -44,6 +44,35 @@ def perform_conversion(model_name, vc_audio_mode, vc_input, vc_upload, tts_text,
             logs = []
             print(f"Converting using {model_name}...")
             logs.append(f"Converting using {model_name}...")
+            if vc_audio_mode == "Upload audio":
+                if vc_upload is None:
+                   print(f"You need to upload an audio")
+                   logs.append(f"You need to upload an audio")
+                   yield "\n".join(logs), None
+                   return "You need to upload an audio", None
+                sampling_rate, audio = vc_upload
+                print("Audio", audio)
+                print("Sampling_rate", sampling_rate)
+                duration = audio.shape[0] / sampling_rate
+                print("Duration", duration)
+                if duration > 20:
+                    print(f"Please upload an audio file that is less than 20 seconds. If you need to generate a longer audio file, please use Colab.")
+                    logs.append(f"Please upload an audio file that is less than 20 seconds. If you need to generate a longer audio file, please use Colab.")
+                    yield "\n".join(logs), None
+                    return "Please upload an audio file that is less than 20 seconds. If you need to generate a longer audio file, please use Colab.", None
+                print("Audio_type ", audio.dtype)
+                print(audio.dtype != np.float32)
+                if audio.dtype != np.float32:
+                    if np.issubdtype(audio.dtype, np.integer):
+                        audio = (audio / np.iinfo(audio.dtype).max).astype(np.float32)
+                    else:
+                        audio = audio.astype(np.float32)
+                if audio.max() > 1.0 or audio.min() < -1.0:
+                    audio = audio / max(abs(audio.max()), abs(audio.min()))
+                if len(audio.shape) > 1:
+                    audio = librosa.to_mono(audio.transpose(1, 0))
+                if sampling_rate != 16000:
+                    audio = librosa.resample(audio, orig_sr=sampling_rate, target_sr=16000)
         except:
             info = traceback.format_exc()
             print(info)
