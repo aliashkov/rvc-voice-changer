@@ -1,0 +1,25 @@
+FROM python:3.10.14
+
+# Downgrade pip to a version that doesn't cause conflicts
+RUN pip install pip==24.0
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /worker-pool-docker
+
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+
+# Now copy the project files
+COPY . /worker-pool-docker
+
+# Expose the port the app will run on
+COPY . .
+
+# Define the command to run your app
+CMD rq worker --with-scheduler voice_conversion

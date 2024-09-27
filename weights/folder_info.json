@@ -1,10 +1,4 @@
 {
-    "emu": {
-      "enable": true,
-      "folder_path": "emu",
-      "title": "Emu Voice Lite",
-      "description": "Lite version of Emu voice model"
-    },
     "markiplier": {
       "enable": true,
       "folder_path": "markiplier",
@@ -16,5 +10,11 @@
       "folder_path": "lukashenko",
       "title": "Lukashenko Voice",
       "description": "Lukashenko voice model"
+    },
+    "pooh": {
+      "enable": true,
+      "folder_path": "pooh",
+      "title": "Winnie Pooh Voice",
+      "description": "Winnie Pooh voice model"
     }
   }

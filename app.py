@@ -5,7 +5,7 @@ import traceback
 import logging
 import gradio as gr
 import numpy as np
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file, abort
 import librosa
 import torch
 import asyncio
@@ -28,6 +28,13 @@ from lib.infer_pack.models import (
 )
 from vc_infer_pipeline import VC
 from config import Config
+import redis
+from rq import Queue, Worker, Connection
+from rq.exceptions import NoSuchJobError
+from rq.job import Job
+import uuid
+from converter import load_model  # Import from the new module
+from coversion_tasks import perform_conversion
 
 # Flask server
 app = Flask(__name__)
@@ -62,6 +69,94 @@ else:
 if os.path.isfile("rmvpe.pt"):
     f0method_mode.insert(2, "rmvpe")
 
+def load_hubert():
+    global hubert_model
+    models, _, _ = checkpoint_utils.load_model_ensemble_and_task(
+        ["hubert_base.pt"],
+        suffix="",
+    )
+    hubert_model = models[0]
+    hubert_model = hubert_model.to(config.device)
+    if config.is_half:
+        hubert_model = hubert_model.half()
+    else:
+        hubert_model = hubert_model.float()
+    hubert_model.eval()
+
+load_hubert()
+redis_host = os.getenv('REDIS_HOST', 'redis')
+redis_port = int(os.getenv('REDIS_PORT', 6379))
+
+# Set up Redis connection
+redis_conn = redis.Redis(host=redis_host, port=redis_port)
+queue = Queue('voice_conversion', connection=redis_conn)
+
+queue_name = 'voice_conversion'  # Change this to your queue name
+
+queue.empty()
+
+
+
+print(f"All jobs from '{queue_name}' have been cleared.")
+
+""" def perform_conversion(model_name, vc_audio_mode, vc_input, vc_upload, tts_text, tts_voice, f0_up_key, f0_method, index_rate, filter_radius, resample_sr, rms_mix_rate, protect):
+    # Load all categories and models
+    categories = load_model(config)
+
+    # Find the correct model
+    selected_model = None
+    for folder_title, folder, description, models in categories:
+        for name, title, author, cover, model_version, vc_fn in models:
+            if name == model_name:
+                selected_model = vc_fn
+                break
+        if selected_model:
+            break
+
+    if not selected_model:
+        return {"error": f"Model '{model_name}' not found"}
+
+    # Call the vc_fn with all required parameters
+    vc_generator = selected_model(
+        vc_audio_mode,
+        vc_input,
+        vc_upload,
+        tts_text,
+        tts_voice,
+        f0_up_key,
+        f0_method,
+        index_rate,
+        filter_radius,
+        resample_sr,
+        rms_mix_rate,
+        protect
+    )
+
+    # Get the first yield
+    logs, _ = next(vc_generator)
+
+    # Get the final result
+    try:
+        while True:
+            logs, result = next(vc_generator)
+    except StopIteration:
+        pass
+
+    if result is None:
+        return {"error": logs}
+
+    tgt_sr, audio_opt = result
+
+    # Save the converted audio
+    output_path = f"converted_{model_name}_{datetime.now().strftime('%Y%m%d%H%M%S')}.wav"
+    sf.write(output_path, audio_opt, tgt_sr)
+
+    return {
+        "message": f"Successfully converted using {model_name}",
+        "info": logs,
+        "output_path": output_path
+    } """
+
 # @spaces.GPU
 def create_vc_fn(model_name, tgt_sr, net_g, vc, if_f0, version, file_index):
     def vc_fn(
@@ -92,6 +187,11 @@ def create_vc_fn(model_name, tgt_sr, net_g, vc, if_f0, version, file_index):
             print("Resample SR: ", resample_sr)
             print("RMS MIX RATE: ", rms_mix_rate)
             print("Protect: ", protect)
+            print("tgt_sr ", tgt_sr)
+            print("net_g ", net_g)
+            print("vc", vc)
+            print("if_f0", version)
+            print("file_index", file_index)
             logs = []
             print(f"Converting using {model_name}...")
             logs.append(f"Converting using {model_name}...")
@@ -100,12 +200,19 @@ def create_vc_fn(model_name, tgt_sr, net_g, vc, if_f0, version, file_index):
                 audio, sr = librosa.load(vc_input, sr=16000, mono=True)
             elif vc_audio_mode == "Upload audio":
                 if vc_upload is None:
-                    return "You need to upload an audio", None
+                   print(f"You need to upload an audio")
+                   logs.append(f"You need to upload an audio")
+                   yield "\n".join(logs), None
+                   return "You need to upload an audio", None
                 sampling_rate, audio = vc_upload
                 print("Audio", audio)
                 print("Sampling_rate", sampling_rate)
                 duration = audio.shape[0] / sampling_rate
-                if duration > 20 and spaces:
+                print("Duration", duration)
+                if duration > 20:
+                    print(f"Please upload an audio file that is less than 20 seconds. If you need to generate a longer audio file, please use Colab.")
+                    logs.append(f"Please upload an audio file that is less than 20 seconds. If you need to generate a longer audio file, please use Colab.")
+                    yield "\n".join(logs), None
                     return "Please upload an audio file that is less than 20 seconds. If you need to generate a longer audio file, please use Colab.", None
                 if audio.dtype != np.float32:
                     if np.issubdtype(audio.dtype, np.integer):
@@ -162,7 +269,7 @@ def create_vc_fn(model_name, tgt_sr, net_g, vc, if_f0, version, file_index):
             yield info, None
     return vc_fn
 
-def load_model():
+""" def load_model():
     categories = []
     if os.path.isfile("weights/folder_info.json"):
         with open("weights/folder_info.json", "r", encoding="utf-8") as f:
@@ -217,7 +324,7 @@ def load_model():
             categories.append([category_title, category_folder, description, models])
     else:
         categories = []
-    return categories
+    return categories """
 
 def download_audio(url, audio_provider):
     logs = []
@@ -275,19 +382,6 @@ def combine_vocal_and_inst(audio_data, vocal_volume, inst_volume, split_model):
     print(result.stdout.decode())
     return output_path
 
-def load_hubert():
-    global hubert_model
-    models, _, _ = checkpoint_utils.load_model_ensemble_and_task(
-        ["hubert_base.pt"],
-        suffix="",
-    )
-    hubert_model = models[0]
-    hubert_model = hubert_model.to(config.device)
-    if config.is_half:
-        hubert_model = hubert_model.half()
-    else:
-        hubert_model = hubert_model.float()
-    hubert_model.eval()
 
 def change_audio_mode(vc_audio_mode):
     if vc_audio_mode == "Input path":
@@ -403,7 +497,7 @@ def use_microphone(microphone):
     
 @app.route("/rvc-models", methods=["GET"])
 def get_rvc_models():
-    categories = load_model()
+    categories = load_model(config)
     models_info = []
     for category in categories:
         category_title = category[0]
@@ -429,7 +523,6 @@ def get_rvc_models():
 @app.route("/convert-voice", methods=["POST"])
 def convert_voice():
     try:
-        # Get form data
         model_name = request.form.get('model_name')
         vc_audio_mode = request.form.get('vc_audio_mode')
         f0_up_key = int(request.form.get('f0_up_key', 0))
@@ -440,31 +533,8 @@ def convert_voice():
         rms_mix_rate = float(request.form.get('rms_mix_rate', 1.0))
         protect = float(request.form.get('protect', 0.5))
 
-        print("MODEL NAME", model_name)
-
-        # Load all categories and models
-        categories = load_model()
-
-        # Find the correct model
-        selected_model = None
-        for folder_title, folder, description, models in categories:
-            for name, title, author, cover, model_version, vc_fn in models:
-                if name == model_name:
-                    selected_model = vc_fn
-                    break
-            if selected_model:
-                break
-
-        if not selected_model:
-            return jsonify({"error": f"Model '{model_name}' not found"}), 400
-
-        # Prepare parameters for vc_fn
-        vc_input = ""
         vc_upload = None
-        tts_text = ""
-        tts_voice = ""
 
-        # Handle audio input
         if vc_audio_mode == "Upload audio":
             if 'audio_file' not in request.files:
                 return jsonify({"error": "No audio file provided"}), 400
@@ -473,32 +543,22 @@ def convert_voice():
             if audio_file.filename == '':
                 return jsonify({"error": "No selected file"}), 400
             
-            if audio_file:
-                # Save the file temporarily
-                temp_path = "temp_audio.wav"
-                audio_file.save(temp_path)
-                
-                # Load the audio file
-                audio, sr = librosa.load(temp_path, sr=16000, mono=True)
-                vc_upload = (sr, audio)
-                
-                # Remove the temporary file
-                os.remove(temp_path)
-        elif vc_audio_mode == "TTS Audio":
-            tts_text = request.form.get('tts_text')
-            tts_voice = request.form.get('tts_voice')
-            if not tts_text or not tts_voice:
-                return jsonify({"error": "TTS text and voice are required for TTS Audio mode"}), 400
+            temp_path = f"temp_audio_{uuid.uuid4()}.wav"
+            audio_file.save(temp_path)
+            audio, sr = librosa.load(temp_path, sr=16000, mono=True)
+            vc_upload = (sr, audio)
+            os.remove(temp_path)
         else:
             return jsonify({"error": "Invalid audio mode"}), 400
 
-        # Call the vc_fn with all required parameters
-        vc_generator = selected_model(
+        job = queue.enqueue(
+            perform_conversion,
+            model_name,
             vc_audio_mode,
-            vc_input,
+            None,
             vc_upload,
-            tts_text,
-            tts_voice,
+            None,
+            None,
             f0_up_key,
             f0_method,
             index_rate,
@@ -508,44 +568,66 @@ def convert_voice():
             protect
         )
 
-        # Get the first yield
-        logs, _ = next(vc_generator)
-
-        # Get the final result
-        try:
-            while True:
-                logs, result = next(vc_generator)
-        except StopIteration:
-            pass
-
-        if result is None:
-            return jsonify({"error": logs}), 500
-
-        tgt_sr, audio_opt = result
-
-        # Save the converted audio
-        output_path = f"converted_{model_name}_{datetime.now().strftime('%Y%m%d%H%M%S')}.wav"
-        sf.write(output_path, audio_opt, tgt_sr)
-
         return jsonify({
-            "message": f"Successfully converted using {model_name}",
-            "info": logs,
-            "output_path": output_path
+            "message": "Conversion task enqueued",
+            "job_id": job.id
         })
 
     except Exception as e:
         return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
 
+# Endpoint to check job status
+@app.route("/job-status/<job_id>", methods=["GET"])
+def job_status(job_id):
+    try:
+        job = Job.fetch(job_id, connection=redis_conn)
+        if job.is_finished:
+            return jsonify({"status": "finished", "result": job.result})
+        elif job.is_failed:
+            return jsonify({"status": "failed", "error_message": job.exc_info})
+        else:
+            return jsonify({"status": "pending", "progress": job.meta.get('progress', 0)})
+    except NoSuchJobError:
+        return jsonify({"error": "Job not found"}), 404
+
+# Endpoint to download the result file
+@app.route("/download/<job_id>", methods=["GET"])
+def download_result(job_id):
+    try:
+        job = Job.fetch(job_id, connection=redis_conn)
+        if job.is_finished:
+            output_path = job.result.get("output_path")
+            if os.path.exists(output_path):
+                return send_file(output_path, as_attachment=True, mimetype='audio/wav')
+            else:
+                return jsonify({"error": "Result file not found"}), 404
+        else:
+            return jsonify({"error": "Job is not finished yet"}), 400
+    except NoSuchJobError:
+        return jsonify({"error": "Job not found"}), 404
+    
+def start_worker():
+    with Connection(redis_conn):
+        worker = Worker(['voice_conversion'], connection=redis_conn)
+        worker.work()
+
 if __name__ == '__main__':
-    load_hubert()
-    categories = load_model()
+    
+    categories = load_model(config)
     print("CATEGORIES", categories)
     tts_voice_list = asyncio.new_event_loop().run_until_complete(edge_tts.list_voices())
     voices = [f"{v['ShortName']}-{v['Gender']}" for v in tts_voice_list]
+
     from threading import Thread
 
     flask_thread = Thread(target=lambda: app.run(host="0.0.0.0", port=5000, debug=False))
     flask_thread.start()
+    #app.run(host="0.0.0.0", port=5000, debug=False)
+
+    # Start the worker in a separate thread
+    #from threading import Thread
+    #worker_thread = Thread(target=start_worker)
+    #worker_thread.start()
     with gr.Blocks(theme=gr.themes.Default(primary_hue=gr.themes.colors.red, secondary_hue=gr.themes.colors.pink)) as gradio_app:
         gr.Markdown(
             "<div align='center'>\n\n"+
@@ -841,6 +923,6 @@ if __name__ == '__main__':
                                 vc_audio_mode
                             ],
                         )
+        #gradio_app.queue(max_size=20, api_open=config.api).launch(server_name="0.0.0.0", server_port=7860)
         gradio_app.queue(max_size=20, api_open=config.api).launch(server_name="0.0.0.0", server_port=7860)
-       
        

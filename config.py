@@ -1,38 +1,18 @@
-import argparse
-import sys
 import torch
 from multiprocessing import cpu_count
 
 class Config:
     def __init__(self):
-        self.device = "cuda:0"
+        self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
         self.is_half = True
         self.n_cpu = 0
         self.gpu_name = None
         self.gpu_mem = None
-        (
-            self.colab,
-            self.api,
-            self.unsupported
-        ) = self.arg_parse()
+        self.colab = False
+        self.api = False
+        self.unsupported = False
         self.x_pad, self.x_query, self.x_center, self.x_max = self.device_config()
 
-    @staticmethod
-    def arg_parse() -> tuple:
-        parser = argparse.ArgumentParser()
-        parser.add_argument("--colab", action="store_true", help="Launch in colab")
-        parser.add_argument("--api", action="store_true", help="Launch with api")
-        parser.add_argument("--unsupported", action="store_true", help="Enable unsupported feature")
-        cmd_opts = parser.parse_args()
-
-        return (
-            cmd_opts.colab,
-            cmd_opts.api,
-            cmd_opts.unsupported
-        )
-
-    # has_mps is only available in nightly pytorch (for now) and MasOS 12.3+.
-    # check `getattr` and try it for compatibility
     @staticmethod
     def has_mps() -> bool:
         if not torch.backends.mps.is_available():
@@ -90,7 +70,7 @@ class Config:
             x_center = 38
             x_max = 41
 
-        if self.gpu_mem != None and self.gpu_mem <= 4:
+        if self.gpu_mem is not None and self.gpu_mem <= 4:
             x_pad = 1
             x_query = 5
             x_center = 30

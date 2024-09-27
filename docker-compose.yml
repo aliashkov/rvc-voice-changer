@@ -9,11 +9,30 @@ services:
     volumes:
       - .:/rvc-docker
       - weights:/models
-    #tags:
-    #  - registry.gitlab.com/gena.bondarev/token_front/next-app:latest
     environment:
-      - PYTHONUNBUFFERED=1 
+      - PYTHONUNBUFFERED=1
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     restart: unless-stopped
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  rq-worker-pool:
+    build:
+      context: .
+      dockerfile: Dockerfile_worker_pool
+    volumes:
+      - .:/worker-pool-docker
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
 
 volumes:
   weights:
