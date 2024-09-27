@@ -1,10 +1,10 @@
 {
-	"winniepooh": {
+	"pooh": {
 		"enable": true,
-		"model_path": "winniepooh.pth",
+		"model_path": "pooh.pth",
         "title": "Lite v1",
         "cover": "cover.png",
-		"feature_retrieval_library": "winniepooh.index",
+		"feature_retrieval_library": "pooh.index",
 		"author": "Chitsanfei"
     
     }
