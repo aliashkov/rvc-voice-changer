@@ -37,6 +37,8 @@ def vc_fn(
         logs = []
         print(f"Converting using {model_name}...")
         logs.append(f"Converting using {model_name}...")
+
+        print("Audio mode", vc_audio_mode)
         
         if vc_audio_mode == "Upload audio":
             if vc_upload is None:
@@ -60,8 +62,10 @@ def vc_fn(
             return "Invalid audio mode", None
 
         f0_up_key = int(f0_up_key)
+
+        print("File index", file_index)
         
-        audio_opt = vc.pipeline(
+        """ audio_opt = vc.pipeline(
             net_g,
             audio,
             sid=0,
@@ -75,7 +79,32 @@ def vc_fn(
             resample_sr=resample_sr,
             rms_mix_rate=rms_mix_rate,
             protect=protect,
-        )
+        ) """
+
+        times = [0, 0, 0]
+        f0_up_key = int(f0_up_key)
+
+        audio_opt = vc.pipeline(
+                hubert_model,
+                net_g,
+                0,
+                audio,
+                vc_input,
+                times,
+                f0_up_key,
+                f0_method,
+                file_index,
+                # file_big_npy,
+                index_rate,
+                if_f0,
+                filter_radius,
+                tgt_sr,
+                resample_sr,
+                rms_mix_rate,
+                version,
+                protect,
+                f0_file=None,
+            )
         
         return logs, (tgt_sr, audio_opt)
     except:
@@ -107,7 +136,10 @@ def perform_conversion(model_name, vc_audio_mode, vc_input, vc_upload, tts_text,
     # print("CPT ", cpt)
     print("CATEGORIES" , categories)
     print("SELECTED MODEL" , selected_model)
-    #vc = VC(tgt_sr, config)
+
+    # character_name, model_title, model_author, model_cover, model_version = selected_model
+    tgt_sr = selected_model["tgt_sr"]
+    vc = VC(tgt_sr, config)
 
     result = vc_fn(
         model_name,

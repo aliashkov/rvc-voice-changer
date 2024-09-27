@@ -50,7 +50,6 @@ def load_model(config):
             category_folder = category_info['folder_path']
             description = category_info['description']
             models = []
-            print(models)
             
             model_info_path = f"weights/{category_folder}/model_info.json"
             if os.path.isfile(model_info_path):
@@ -82,7 +81,6 @@ def load_model(config):
                         net_g = SynthesizerTrnMs768NSFsid_nono(*cpt["config"])
                     model_version = "V2"
                 del net_g.enc_q
-                print(net_g.load_state_dict(cpt["weight"], strict=False))
                 net_g.eval().to(config.device)
                 if config.is_half:
                     net_g = net_g.half()
