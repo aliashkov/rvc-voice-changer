@@ -22,15 +22,18 @@ from rq import Queue, Worker, Connection
 from rq.exceptions import NoSuchJobError
 from rq.job import Job
 from rq import get_current_job
-from converter import load_model
+from test import calculate_stats
+#from converter import load_model
 
-def perform_conversion(model_name, vc_audio_mode, vc_input, vc_upload, tts_text, tts_voice, f0_up_key, f0_method, index_rate, filter_radius, resample_sr, rms_mix_rate, protect, config ):
+def perform_conversion(model_name, vc_audio_mode, vc_input, vc_upload, tts_text, tts_voice, f0_up_key, f0_method, index_rate, filter_radius, resample_sr, rms_mix_rate, protect, categories ):
         job = get_current_job()  # Get the current job
         job.meta['progress'] = 0  # Initialize progress
         job.save_meta()  # Save initial job state  
-        print("Config", config)
+        test_array = [1, 2, 3, 4, 5]
+        mean, std_dev = calculate_stats(test_array)
+        print(f"Mean: {mean}, Standard Deviation: {std_dev}")
         try:
-            categories = load_model(config)
+            #categories = load_model(config)
             print("Model name: ", model_name)
             print("VC audio mode: ", vc_audio_mode)
             print("VC Input: ", vc_input)
@@ -44,6 +47,7 @@ def perform_conversion(model_name, vc_audio_mode, vc_input, vc_upload, tts_text,
             print("Resample SR: ", resample_sr)
             print("RMS MIX RATE: ", rms_mix_rate)
             print("Protect: ", protect)
+            print(f"Categories:  {categories}")
             logs = []
             print(f"Converting using {model_name}...")
             logs.append(f"Converting using {model_name}...")

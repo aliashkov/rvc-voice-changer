@@ -96,6 +96,8 @@ queue_name = 'voice_conversion'  # Change this to your queue name
 
 queue.empty()
 
+
+
 print(f"All jobs from '{queue_name}' have been cleared.")
 
 """ def perform_conversion(model_name, vc_audio_mode, vc_input, vc_upload, tts_text, tts_voice, f0_up_key, f0_method, index_rate, filter_radius, resample_sr, rms_mix_rate, protect):
@@ -534,6 +536,8 @@ def convert_voice():
 
         vc_upload = None
 
+        categories = load_model(config)
+
         # Handle audio input
         if vc_audio_mode == "Upload audio":
             if 'audio_file' not in request.files:
@@ -551,7 +555,7 @@ def convert_voice():
             return jsonify({"error": "Invalid audio mode"}), 400
 
         # Enqueue the conversion task
-        job = queue.enqueue(perform_conversion, model_name, vc_audio_mode, None, vc_upload, None, None, f0_up_key, f0_method, index_rate, filter_radius, resample_sr, rms_mix_rate, protect, config )
+        job = queue.enqueue(perform_conversion, model_name, vc_audio_mode, None, vc_upload, None, None, f0_up_key, f0_method, index_rate, filter_radius, resample_sr, rms_mix_rate, protect, categories )
 
         return jsonify({
             "message": "Conversion task enqueued",
@@ -607,13 +611,6 @@ if __name__ == '__main__':
 
     flask_thread = Thread(target=lambda: app.run(host="0.0.0.0", port=5000, debug=False))
     flask_thread.start()
-
-    with Connection(redis_conn):
-        worker = Worker(['voice_conversion'], connection=redis_conn)
-        worker_thread = Thread(target=worker.work)
-        worker_thread.start()
-
-
     #app.run(host="0.0.0.0", port=5000, debug=False)
 
     # Start the worker in a separate thread
