@@ -83,7 +83,6 @@ def load_hubert():
         hubert_model = hubert_model.float()
     hubert_model.eval()
 
-
 load_hubert()
 redis_host = os.getenv('REDIS_HOST', 'redis')
 redis_port = int(os.getenv('REDIS_PORT', 6379))

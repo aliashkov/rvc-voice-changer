@@ -1,9 +1,9 @@
 {
-    "emu": {
+    "winniepooh": {
       "enable": true,
-      "folder_path": "emu",
-      "title": "Emu Voice Lite",
-      "description": "Lite version of Emu voice model"
+      "folder_path": "winniepooh",
+      "title": "Winnie Pooh Voice",
+      "description": "Winnie Pooh voice model"
     },
     "markiplier": {
       "enable": true,
