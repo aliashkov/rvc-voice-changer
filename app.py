@@ -586,7 +586,8 @@ def job_status(job_id):
         elif job.is_failed:
             return jsonify({"status": "failed", "error_message": job.exc_info})
         else:
-            return jsonify({"status": "pending", "progress": job.meta.get('progress', 0)})
+            progress = job.meta.get('progress', 0)
+            return jsonify({"status": "pending", "progress": progress})
     except NoSuchJobError:
         return jsonify({"error": "Job not found"}), 404
 
