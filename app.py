@@ -551,7 +551,7 @@ def convert_voice():
             return jsonify({"error": "Invalid audio mode"}), 400
 
         # Enqueue the conversion task
-        job = queue.enqueue(perform_conversion, model_name, vc_audio_mode, None, vc_upload, None, None, f0_up_key, f0_method, index_rate, filter_radius, resample_sr, rms_mix_rate, protect)
+        job = queue.enqueue(perform_conversion, model_name, vc_audio_mode, None, vc_upload, None, None, f0_up_key, f0_method, index_rate, filter_radius, resample_sr, rms_mix_rate, protect, config )
 
         return jsonify({
             "message": "Conversion task enqueued",

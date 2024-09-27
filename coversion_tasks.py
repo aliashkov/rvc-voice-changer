@@ -22,12 +22,15 @@ from rq import Queue, Worker, Connection
 from rq.exceptions import NoSuchJobError
 from rq.job import Job
 from rq import get_current_job
+from converter import load_model
 
-def perform_conversion(model_name, vc_audio_mode, vc_input, vc_upload, tts_text, tts_voice, f0_up_key, f0_method, index_rate, filter_radius, resample_sr, rms_mix_rate, protect):
+def perform_conversion(model_name, vc_audio_mode, vc_input, vc_upload, tts_text, tts_voice, f0_up_key, f0_method, index_rate, filter_radius, resample_sr, rms_mix_rate, protect, config ):
         job = get_current_job()  # Get the current job
         job.meta['progress'] = 0  # Initialize progress
         job.save_meta()  # Save initial job state  
+        print("Config", config)
         try:
+            categories = load_model(config)
             print("Model name: ", model_name)
             print("VC audio mode: ", vc_audio_mode)
             print("VC Input: ", vc_input)

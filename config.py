@@ -1,5 +1,4 @@
 import argparse
-import sys
 import torch
 from multiprocessing import cpu_count
 
@@ -31,8 +30,6 @@ class Config:
             cmd_opts.unsupported
         )
 
-    # has_mps is only available in nightly pytorch (for now) and MasOS 12.3+.
-    # check `getattr` and try it for compatibility
     @staticmethod
     def has_mps() -> bool:
         if not torch.backends.mps.is_available():
