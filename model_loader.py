@@ -10,7 +10,6 @@ from lib.infer_pack.models import (
 from config import Config
 
 def load_model():
-    # Create a new Config instance
     config = Config()
 
     categories = []
@@ -82,24 +81,3 @@ def load_model():
     else:
         categories = []
     return categories
-
-def load_model_from_checkpoint(cpt, version, if_f0):
-    # Add default value for is_half
-    config2 = cpt["config"]
-
-    if version == "v1":
-        if if_f0 == 1:
-            net_g = SynthesizerTrnMs256NSFsid(*cpt["config"], is_half
-            ,x_max = 65)
-        else:
-            net_g = SynthesizerTrnMs256NSFsid_nono(*cpt["config"])
-    elif version == "v2":
-        if if_f0 == 1:
-            net_g = SynthesizerTrnMs768NSFsid(*cpt["config"], x_pad = 3 ,x_query = 10,x_center = 60
-            ,x_max = 65)
-        else:
-            net_g = SynthesizerTrnMs768NSFsid_nono(*cpt["config"])
-    del net_g.enc_q
-    print(net_g.load_state_dict(cpt["weight"], strict=False))
-    net_g.eval()
-    return net_g

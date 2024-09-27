@@ -5,8 +5,12 @@ import soundfile as sf
 import numpy as np
 from datetime import datetime
 import traceback
-from model_loader import load_model, load_model_from_checkpoint
+from model_loader import load_model
 from vc_infer_pipeline import VC
+from config import Config
+
+config = Config()
+
 
 def vc_fn(
     model_name,
@@ -103,12 +107,12 @@ def perform_conversion(model_name, vc_audio_mode, vc_input, vc_upload, tts_text,
     # print("CPT ", cpt)
     print("CATEGORIES" , categories)
     print("SELECTED MODEL" , selected_model)
-    vc = VC(selected_model["tgt_sr"])
+    #vc = VC(tgt_sr, config)
 
     result = vc_fn(
         model_name,
         selected_model["tgt_sr"],
-        net_g,
+        selected_model["net_g"],
         vc,
         selected_model["if_f0"],
         selected_model["version"],
