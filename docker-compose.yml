@@ -22,11 +22,12 @@ services:
     ports:
       - "6379:6379"
 
-  rq-worker:
-    build: .
-    command: rq worker voice_conversion
+  rq-worker-pool:
+    build:
+      context: .
+      dockerfile: Dockerfile_worker_pool
     volumes:
-      - .:/rvc-docker
+      - .:/worker-pool-docker
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379

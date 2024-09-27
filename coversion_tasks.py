@@ -7,8 +7,6 @@ import traceback
 import numpy as np
 from flask import Flask, request, jsonify, send_file, abort
 import librosa
-import asyncio
-import edge_tts
 import soundfile as sf
 # import spaces
 from datetime import datetime
@@ -24,8 +22,6 @@ from rq import Queue, Worker, Connection
 from rq.exceptions import NoSuchJobError
 from rq.job import Job
 from rq import get_current_job
-
-#config = Config()
 
 def perform_conversion(model_name, vc_audio_mode, vc_input, vc_upload, tts_text, tts_voice, f0_up_key, f0_method, index_rate, filter_radius, resample_sr, rms_mix_rate, protect):
         job = get_current_job()  # Get the current job
