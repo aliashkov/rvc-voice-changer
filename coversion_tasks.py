@@ -7,9 +7,25 @@ from datetime import datetime
 import traceback
 from model_loader import load_model
 from vc_infer_pipeline import VC
+from fairseq import checkpoint_utils
 from config import Config
 
 config = Config()
+
+def load_hubert():
+    global hubert_model
+    models, _, _ = checkpoint_utils.load_model_ensemble_and_task(
+        ["hubert_base.pt"],
+        suffix="",
+    )
+    hubert_model = models[0]
+    hubert_model = hubert_model.to(config.device)
+    if config.is_half:
+        hubert_model = hubert_model.half()
+    else:
+        hubert_model = hubert_model.float()
+    hubert_model.eval()
+
 
 
 def vc_fn(
@@ -116,6 +132,7 @@ def perform_conversion(model_name, vc_audio_mode, vc_input, vc_upload, tts_text,
     categories = load_model()
 
     print("CATEGORIES", categories)
+    load_hubert()
 
     selected_model = None
     for folder_title, folder, description, models in categories:
