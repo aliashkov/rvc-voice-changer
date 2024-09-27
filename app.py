@@ -536,9 +536,6 @@ def convert_voice():
 
         vc_upload = None
 
-        categories = load_model(config)
-
-        # Handle audio input
         if vc_audio_mode == "Upload audio":
             if 'audio_file' not in request.files:
                 return jsonify({"error": "No audio file provided"}), 400
@@ -551,11 +548,26 @@ def convert_voice():
             audio_file.save(temp_path)
             audio, sr = librosa.load(temp_path, sr=16000, mono=True)
             vc_upload = (sr, audio)
+            os.remove(temp_path)
         else:
             return jsonify({"error": "Invalid audio mode"}), 400
 
-        # Enqueue the conversion task
-        job = queue.enqueue(perform_conversion, model_name, vc_audio_mode, None, vc_upload, None, None, f0_up_key, f0_method, index_rate, filter_radius, resample_sr, rms_mix_rate, protect, categories )
+        job = queue.enqueue(
+            perform_conversion,
+            model_name,
+            vc_audio_mode,
+            None,
+            vc_upload,
+            None,
+            None,
+            f0_up_key,
+            f0_method,
+            index_rate,
+            filter_radius,
+            resample_sr,
+            rms_mix_rate,
+            protect
+        )
 
         return jsonify({
             "message": "Conversion task enqueued",
