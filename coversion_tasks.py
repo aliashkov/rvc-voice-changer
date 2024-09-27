@@ -98,10 +98,11 @@ def perform_conversion(model_name, vc_audio_mode, vc_input, vc_upload, tts_text,
     
     print(folder_title, folder, description, models)
     
-    cpt = torch.load(f"weights/{folder}/{selected_model['name']}/{selected_model['name']}.pth", map_location="cpu")
+    #cpt = torch.load(f"weights/{folder}/{selected_model['name']}/{selected_model['name']}.pth", map_location="cpu")
 
-    print("CPT ", cpt)
-    net_g = load_model_from_checkpoint(cpt, selected_model["version"], selected_model["if_f0"])
+    # print("CPT ", cpt)
+    print("CATEGORIES" , categories)
+    print("SELECTED MODEL" , selected_model)
     vc = VC(selected_model["tgt_sr"])
 
     result = vc_fn(
