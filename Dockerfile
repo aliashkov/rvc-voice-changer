@@ -39,8 +39,12 @@ RUN pip install uuid
 # Now copy the project files
 COPY . /rvc-docker
 
+RUN mkdir -p /rvc-docker/files
+
+
 # Expose the port the app will run on
 EXPOSE 7860
+
 
 # Define the command to run your app
 CMD ["python3", "app.py"]

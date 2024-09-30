@@ -209,7 +209,8 @@ def perform_conversion(model_name, vc_audio_mode, vc_input, vc_upload, tts_text,
 
     tgt_sr, audio_opt = audio_result
 
-    output_path = f"converted_{model_name}_{datetime.now().strftime('%Y%m%d%H%M%S')}.wav"
+    output_filename = f"converted_{model_name}_{datetime.now().strftime('%Y%m%d%H%M%S')}.wav"
+    output_path = os.path.join('files', output_filename)
     sf.write(output_path, audio_opt, tgt_sr)
 
     job.meta['progress'] = 100

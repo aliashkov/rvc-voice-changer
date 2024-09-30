@@ -598,7 +598,7 @@ def download_result(job_id):
         job = Job.fetch(job_id, connection=redis_conn)
         if job.is_finished:
             output_path = job.result.get("output_path")
-            if os.path.exists(output_path):
+            if output_path and os.path.exists(output_path):
                 return send_file(output_path, as_attachment=True, mimetype='audio/wav')
             else:
                 return jsonify({"error": "Result file not found"}), 404
