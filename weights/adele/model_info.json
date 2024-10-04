@@ -1,0 +1,10 @@
+{
+	"adele": {
+		"enable": true,
+		"model_path": "adele.pth",
+        "title": "Lite v2",
+        "cover": "cover.png",
+		"feature_retrieval_library": "adele.index",
+		"author": "Chitsanfei"
+    }
+}

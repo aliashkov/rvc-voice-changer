@@ -1,0 +1,11 @@
+{
+	"michael_jackson": {
+		"enable": true,
+		"model_path": "michael_jackson.pth",
+        "title": "Lite v1",
+        "cover": "cover.png",
+		"feature_retrieval_library": "michael_jackson.index",
+		"author": "Chitsanfei"
+    
+    }
+}

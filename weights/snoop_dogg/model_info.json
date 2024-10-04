@@ -1,0 +1,11 @@
+{
+	"snoop_dogg": {
+		"enable": true,
+		"model_path": "snoop_dogg.pth",
+        "title": "Lite v1",
+        "cover": "cover.png",
+		"feature_retrieval_library": "snoop_dogg.index",
+		"author": "Chitsanfei"
+    
+    }
+}

@@ -16,5 +16,59 @@
       "folder_path": "pooh",
       "title": "Winnie Pooh Voice",
       "description": "Winnie Pooh voice model"
+    },
+    "adele": {
+      "enable": true,
+      "folder_path": "adele",
+      "title": "Adele Voice",
+      "description": "Adele voice model"
+    },
+    "dr_dre": {
+      "enable": true,
+      "folder_path": "dr_dre",
+      "title": "Dr Dre Voice",
+      "description": "Dr Dre voice model"
+    },
+    "george_michael": {
+      "enable": true,
+      "folder_path": "george_michael",
+      "title": "George Voice",
+      "description": "George Michael voice model"
+    },
+    "johnny_depp": {
+      "enable": true,
+      "folder_path": "johnny_depp",
+      "title": "Johnny Depp",
+      "description": "Johnny Depp voice model"
+    },
+    "madonna": {
+      "enable": true,
+      "folder_path": "madonna",
+      "title": "Madonna",
+      "description": "Madonna voice model"
+    },
+    "michael_jackson": {
+      "enable": true,
+      "folder_path": "michael_jackson",
+      "title": "Michael Jackson",
+      "description": "Michael Jackson voice model"
+    },
+    "paul_mccartney": {
+      "enable": true,
+      "folder_path": "paul_mccartney",
+      "title": "Paul McCartney",
+      "description": "Paul McCartney voice model"
+    },
+    "snoop_dogg": {
+      "enable": true,
+      "folder_path": "snoop_dogg",
+      "title": "Snoop Dogg",
+      "description": "Snoop Dogg voice model"
+    },
+    "whitney_houston": {
+      "enable": true,
+      "folder_path": "whitney_houston",
+      "title": "Whitney Houston",
+      "description": "Whitney Houston voice model"
     }
   }

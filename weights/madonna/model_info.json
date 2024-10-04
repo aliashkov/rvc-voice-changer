@@ -1,0 +1,11 @@
+{
+	"madonna": {
+		"enable": true,
+		"model_path": "madonna.pth",
+        "title": "Lite v1",
+        "cover": "cover.png",
+		"feature_retrieval_library": "madonna.index",
+		"author": "Chitsanfei"
+    
+    }
+}

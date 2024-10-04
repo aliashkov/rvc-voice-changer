@@ -1,0 +1,10 @@
+{
+	"dr_dre": {
+		"enable": true,
+		"model_path": "dr_dre.pth",
+        "title": "Lite v2",
+        "cover": "cover.png",
+		"feature_retrieval_library": "dr_dre.index",
+		"author": "Chitsanfei"
+    }
+}

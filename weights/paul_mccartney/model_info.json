@@ -1,0 +1,11 @@
+{
+	"paul_mccartney": {
+		"enable": true,
+		"model_path": "paul_mccartney.pth",
+        "title": "Lite v1",
+        "cover": "cover.png",
+		"feature_retrieval_library": "paul_mccartney.index",
+		"author": "Chitsanfei"
+    
+    }
+}

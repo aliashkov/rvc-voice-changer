@@ -1,0 +1,10 @@
+{
+	"johnny_depp": {
+		"enable": true,
+		"model_path": "johnny_depp.pth",
+        "title": "Lite v2",
+        "cover": "cover.png",
+		"feature_retrieval_library": "johnny_depp.index",
+		"author": "Chitsanfei"
+    }
+}
