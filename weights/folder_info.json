@@ -1,22 +1,4 @@
 {
-    "markiplier": {
-      "enable": true,
-      "folder_path": "markiplier",
-      "title": "Markiplier Voice",
-      "description": "Markiplier voice model"
-    },
-    "lukashenko": {
-      "enable": true,
-      "folder_path": "lukashenko",
-      "title": "Lukashenko Voice",
-      "description": "Lukashenko voice model"
-    },
-    "pooh": {
-      "enable": true,
-      "folder_path": "pooh",
-      "title": "Winnie Pooh Voice",
-      "description": "Winnie Pooh voice model"
-    },
     "adele": {
       "enable": true,
       "folder_path": "adele",
@@ -29,12 +11,6 @@
       "title": "Dr Dre Voice",
       "description": "Dr Dre voice model"
     },
-    "george_michael": {
-      "enable": true,
-      "folder_path": "george_michael",
-      "title": "George Voice",
-      "description": "George Michael voice model"
-    },
     "johnny_depp": {
       "enable": true,
       "folder_path": "johnny_depp",
@@ -46,6 +22,12 @@
       "folder_path": "madonna",
       "title": "Madonna",
       "description": "Madonna voice model"
+    },
+    "markiplier": {
+      "enable": true,
+      "folder_path": "markiplier",
+      "title": "Markiplier Voice",
+      "description": "Markiplier voice model"
     },
     "michael_jackson": {
       "enable": true,
