@@ -36,6 +36,9 @@ RUN pip install ffmpeg
 RUN pip install redis rq
 RUN pip install uuid
 
+RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu117
+
+
 # Now copy the project files
 COPY . /rvc-docker
 

@@ -17,6 +17,13 @@ services:
     restart: unless-stopped
     depends_on:
       - redis
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 
   redis:
     image: redis:alpine
@@ -36,6 +43,13 @@ services:
       - REDIS_PORT=6379
     depends_on:
       - redis
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 
 volumes:
   weights:
