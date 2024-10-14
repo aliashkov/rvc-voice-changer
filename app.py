@@ -209,7 +209,7 @@ def create_vc_fn(model_name, tgt_sr, net_g, vc, if_f0, version, file_index):
                 print("Sampling_rate", sampling_rate)
                 duration = audio.shape[0] / sampling_rate
                 print("Duration", duration)
-                if duration > 20:
+                if duration > 300:
                     print(f"Please upload an audio file that is less than 20 seconds. If you need to generate a longer audio file, please use Colab.")
                     logs.append(f"Please upload an audio file that is less than 20 seconds. If you need to generate a longer audio file, please use Colab.")
                     yield "\n".join(logs), None
@@ -586,7 +586,8 @@ def job_status(job_id):
         elif job.is_failed:
             return jsonify({"status": "failed", "error_message": job.exc_info})
         else:
-            return jsonify({"status": "pending", "progress": job.meta.get('progress', 0)})
+            progress = job.meta.get('progress', 0)
+            return jsonify({"status": "pending", "progress": progress})
     except NoSuchJobError:
         return jsonify({"error": "Job not found"}), 404
 
@@ -597,7 +598,7 @@ def download_result(job_id):
         job = Job.fetch(job_id, connection=redis_conn)
         if job.is_finished:
             output_path = job.result.get("output_path")
-            if os.path.exists(output_path):
+            if output_path and os.path.exists(output_path):
                 return send_file(output_path, as_attachment=True, mimetype='audio/wav')
             else:
                 return jsonify({"error": "Result file not found"}), 404

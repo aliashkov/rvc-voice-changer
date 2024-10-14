@@ -1,6 +1,11 @@
 import torch
 from multiprocessing import cpu_count
 
+print("test")
+print(torch)
+print(torch.cuda)
+print(torch.cuda.is_available())
+
 class Config:
     def __init__(self):
         self.device = "cuda:0" if torch.cuda.is_available() else "cpu"

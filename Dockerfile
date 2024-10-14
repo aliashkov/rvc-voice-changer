@@ -1,3 +1,5 @@
+FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
+
 FROM python:3.10.14
 
 # Downgrade pip to a version that doesn't cause conflicts
@@ -36,11 +38,18 @@ RUN pip install ffmpeg
 RUN pip install redis rq
 RUN pip install uuid
 
+RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu117
+
+
 # Now copy the project files
 COPY . /rvc-docker
 
+RUN mkdir -p /rvc-docker/files
+
+
 # Expose the port the app will run on
 EXPOSE 7860
+
 
 # Define the command to run your app
 CMD ["python3", "app.py"]

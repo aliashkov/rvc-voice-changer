@@ -1,20 +1,9 @@
 {
+
     "markiplier": {
       "enable": true,
       "folder_path": "markiplier",
       "title": "Markiplier Voice",
       "description": "Markiplier voice model"
-    },
-    "lukashenko": {
-      "enable": true,
-      "folder_path": "lukashenko",
-      "title": "Lukashenko Voice",
-      "description": "Lukashenko voice model"
-    },
-    "pooh": {
-      "enable": true,
-      "folder_path": "pooh",
-      "title": "Winnie Pooh Voice",
-      "description": "Winnie Pooh voice model"
     }
   }

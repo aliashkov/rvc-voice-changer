@@ -9,6 +9,8 @@ from model_loader import load_model
 from vc_infer_pipeline import VC
 from fairseq import checkpoint_utils
 from config import Config
+from rq import get_current_job
+
 
 config = Config()
 
@@ -61,7 +63,7 @@ def vc_fn(
                 return "You need to upload an audio", None
             sampling_rate, audio = vc_upload
             duration = audio.shape[0] / sampling_rate
-            if duration > 20:
+            if duration > 300:
                 return "Please upload an audio file that is less than 20 seconds. If you need to generate a longer audio file, please use Colab.", None
             if audio.dtype != np.float32:
                 if np.issubdtype(audio.dtype, np.integer):
@@ -129,10 +131,27 @@ def vc_fn(
         return info, None
 
 def perform_conversion(model_name, vc_audio_mode, vc_input, vc_upload, tts_text, tts_voice, f0_up_key, f0_method, index_rate, filter_radius, resample_sr, rms_mix_rate, protect):
-    categories = load_model()
+    job = get_current_job()
 
-    print("CATEGORIES", categories)
+    print("test")
+    print(torch)
+    print(torch.cuda)
+    print(torch.cuda.is_available())
+    
+
+    # Set progress to 0
+    job.meta['progress'] = 0
+    job.save_meta()
+
+    # Load model
+    categories = load_model()
+    job.meta['progress'] = 10
+    job.save_meta()
+
+
     load_hubert()
+    job.meta['progress'] = 15
+    job.save_meta()
 
     selected_model = None
     for folder_title, folder, description, models in categories:
@@ -146,6 +165,9 @@ def perform_conversion(model_name, vc_audio_mode, vc_input, vc_upload, tts_text,
     if not selected_model:
         return {"error": f"Model '{model_name}' not found"}
     
+    job.meta['progress'] = 20
+    job.save_meta()
+    
     print(folder_title, folder, description, models)
     
     #cpt = torch.load(f"weights/{folder}/{selected_model['name']}/{selected_model['name']}.pth", map_location="cpu")
@@ -157,6 +179,9 @@ def perform_conversion(model_name, vc_audio_mode, vc_input, vc_upload, tts_text,
     # character_name, model_title, model_author, model_cover, model_version = selected_model
     tgt_sr = selected_model["tgt_sr"]
     vc = VC(tgt_sr, config)
+
+    job.meta['progress'] = 30
+    job.save_meta()
 
     result = vc_fn(
         model_name,
@@ -182,13 +207,20 @@ def perform_conversion(model_name, vc_audio_mode, vc_input, vc_upload, tts_text,
 
     logs, audio_result = result
 
+    job.meta['progress'] = 90
+    job.save_meta()
+
     if audio_result is None:
         return {"error": logs}
 
     tgt_sr, audio_opt = audio_result
 
-    output_path = f"converted_{model_name}_{datetime.now().strftime('%Y%m%d%H%M%S')}.wav"
+    output_filename = f"converted_{model_name}_{datetime.now().strftime('%Y%m%d%H%M%S')}.wav"
+    output_path = os.path.join('files', output_filename)
     sf.write(output_path, audio_opt, tgt_sr)
+
+    job.meta['progress'] = 100
+    job.save_meta()
 
     return {
         "message": f"Successfully converted using {model_name}",
