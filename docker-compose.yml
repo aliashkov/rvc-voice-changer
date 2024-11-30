@@ -9,6 +9,7 @@ services:
     volumes:
       - .:/rvc-docker
       - weights:/models
+      - ./files:/rvc-docker/files  # Mount local files directory to container
     environment:
       - PYTHONUNBUFFERED=1
       - REDIS_HOST=redis
@@ -23,11 +24,13 @@ services:
       - "6379:6379"
 
   rq-worker-pool:
+    image: shoot2033/rq-worker-pool:latest
     build:
       context: .
       dockerfile: Dockerfile_worker_pool
     volumes:
       - .:/worker-pool-docker
+      - ./files:/worker-pool-docker/files  # Mount local files directory to container
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -36,4 +39,6 @@ services:
 
 volumes:
   weights:
+    driver: local
+  files:
     driver: local

@@ -18,6 +18,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Now copy the project files
 COPY . /worker-pool-docker
 
+RUN mkdir -p /worker-pool-docker/files
+
 # Expose the port the app will run on
 COPY . .
 
